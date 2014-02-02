@@ -14,9 +14,8 @@ class EShoppingCart extends CMap {
      * @var boolean
      */
     public $refresh = true;
+    public $modules = array();
 
-    public $discounts = array();
-	
 	public $cartId = __CLASS__;
 
     /**
@@ -27,6 +26,11 @@ class EShoppingCart extends CMap {
 
     public function init(){
         $this->restoreFromSession();
+
+		//initialize modules
+		foreach($this->modules as $_key => $_item){
+			$this->with($_key);
+		}
     }
 
     /**
@@ -76,7 +80,6 @@ class EShoppingCart extends CMap {
      */
     public function remove($key) {
         parent::remove($key);
-        $this->applyDiscounts();
         $this->onRemovePosition(new CEvent($this));
         $this->saveState();
     }
@@ -108,7 +111,6 @@ class EShoppingCart extends CMap {
         else
             parent::add($key, $position);
 
-        $this->applyDiscounts();
         $this->onUpdatePosition(new CEvent($this));
         $this->saveState();
     }
@@ -141,15 +143,11 @@ class EShoppingCart extends CMap {
      * @param bool $withDiscount
      * @return float
      */
-    public function getCost($withDiscount = true) {
+    public function getCost() {
         $price = 0.0;
-        foreach ($this as $position)
-        {
-            $price += $position->getSumPrice($withDiscount);
+        foreach ($this as $position){
+            $price += $position->getSumPrice();
         }
-
-        if($withDiscount)
-            $price -= $this->discountPrice;
 
         return $price;
     }
@@ -173,39 +171,6 @@ class EShoppingCart extends CMap {
     }
 
     /**
-     * Apply discounts to all positions
-     * @return void
-     */
-    protected function applyDiscounts() {
-        foreach ($this->discounts as $discount)
-        {
-            $discountObj = Yii::createComponent($discount);
-            $discountObj->setShoppingCart($this);
-            $discountObj->apply();
-        }
-    }
-
-    /**
-     * Set cart-wide discount sum
-     *
-     * @param float $price
-     * @return void
-     */
-    public function setDiscountPrice($price){
-        $this->discountPrice = $price;
-    }
-
-    /**
-     * Add $price to cart-wide discount sum
-     *
-     * @param float $price
-     * @return void
-     */
-    public function addDiscountPrice($price){
-        $this->discountPrice += $price;
-    }
-
-    /**
      * Returns array all positions
      * @return array
      */
@@ -224,4 +189,22 @@ class EShoppingCart extends CMap {
     }
 
 
+	public function with($_module_alias){
+		if(empty($this->modules[$_module_alias]))
+			throw new CException("{$_module_alias} module undefined");
+
+		if(is_array($this->modules[$_module_alias]) && !$this->modules[$_module_alias] instanceof $this->cartId){
+			if($o = Yii::createComponent($this->modules[$_module_alias])){
+				if($o instanceof AEShoppingCartModules){
+					$o->setShoppingCart($this);
+					$this->modules[$_module_alias] = $o;
+
+				}else{
+					throw new CException("{$_module_alias} module must be inheritance AEShoppingCartModules");
+				}
+			}
+		}
+
+		return $this->modules[$_module_alias];
+	}
 }
