@@ -14,9 +14,13 @@ class EDiscount extends AEShoppingCartModules {
         foreach ($this->shoppingCart as $position) {
             $quantity = $position->getQuantity();
             if ($quantity > 1) {
-                $discountPrice = $this->rate * $position->getPrice() / 100;
+                $discountPrice = $this->calculateDiscount($position->getPrice());
                 $position->addDiscountPrice($discountPrice);
             }
         }
+    }
+
+    public function calculateDiscount($price) {
+        return $this->rate * (int)$price / 100;
     }
 }
