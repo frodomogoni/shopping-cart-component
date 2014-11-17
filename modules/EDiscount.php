@@ -20,7 +20,7 @@ class EDiscount extends AEShoppingCartModules {
         }
     }
 
-    public function calculateDiscount($price) {
-        return $this->rate * (int)$price / 100;
+    public function calculateDiscount($price, $rate = null) {
+        return ($rate? : $this->rate) * (float)$price / 100;
     }
 }
